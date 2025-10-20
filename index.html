@@ -3,159 +3,399 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AI Interpreter (Vercel-ready)</title>
+  <title>다국어 AI 실시간 통역 (브라우저)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto; background:#0b0b0b; color:#e6eef8; padding:20px;}
-    .card{background:#111214;border-radius:12px;padding:14px;margin-bottom:12px;}
-    .btn{padding:10px 14px;border-radius:8px;cursor:pointer;border:none}
+    body { background:#0b0b0b; color:#e6eef8; font-family:Inter,ui-sans-serif; }
+    .card { background: #111214; border-radius:12px; padding:14px; border:1px solid rgba(255,255,255,0.04); }
+    .speaker-box { border-radius:12px; padding:12px; min-height:120px; position:relative; }
+    .btn { padding:10px 14px; border-radius:999px; font-weight:600; cursor:pointer; }
+    .mic-btn { width:160px; height:60px; font-size:18px; border-radius:12px; }
+    .listening { box-shadow: 0 0 18px rgba(59,130,246,0.6); transform:scale(1.02); }
   </style>
 </head>
-<body>
-  <h2>AI Interpreter (Vercel secured proxy)</h2>
-  <div class="card">
-    <label>나의 언어 (L1)</label>
-    <select id="selectL1">
-      <option value="ko-KR">한국어 (ko-KR)</option>
-      <option value="vi-VN">베트남어 (vi-VN)</option>
-      <option value="en-US">영어 (en-US)</option>
-      <option value="zh-CN">중국어 (zh-CN)</option>
-      <option value="ja-JP">일본어 (ja-JP)</option>
-    </select>
-    <br/><br/>
-    <label>상대방 언어 (L2)</label>
-    <select id="selectL2">
-      <option value="vi-VN">베트남어 (vi-VN)</option>
-      <option value="ko-KR">한국어 (ko-KR)</option>
-      <option value="en-US">영어 (en-US)</option>
-      <option value="zh-CN">중국어 (zh-CN)</option>
-      <option value="ja-JP">일본어 (ja-JP)</option>
-    </select>
-  </div>
+<body class="p-6 flex justify-center">
 
-  <div class="card">
-    <div><strong>원문 (ASR)</strong></div>
-    <pre id="asr" style="min-height:60px;background:#071028;padding:10px;border-radius:6px;"></pre>
-    <button id="playAsr" class="btn" style="background:#2b6cb0;color:white">🔊 ASR 재생</button>
-  </div>
+  <div class="w-full max-w-2xl space-y-5">
+    <!-- 상단 언어 선택 -->
+    <div class="card flex gap-4 items-center justify-between">
+      <div class="w-1/2">
+        <label class="text-sm text-gray-300">나의 언어 (My Language)</label>
+        <select id="selectL1" class="w-full mt-2 p-2 rounded bg-[#0f1720] text-white">
+          <option value="ko-KR">한국어 (Korean)</option>
+          <option value="vi-VN">베트남어 (Vietnamese)</option>
+          <option value="en-US">영어 (English)</option>
+          <option value="zh-CN">중국어 (Chinese)</option>
+          <option value="ja-JP">일본어 (Japanese)</option>
+        </select>
+      </div>
 
-  <div class="card">
-    <div><strong>번역</strong></div>
-    <pre id="translation" style="min-height:60px;background:#120a0c;padding:10px;border-radius:6px;"></pre>
-    <button id="playTranslated" class="btn" style="background:#c53030;color:white">🔊 번역 재생</button>
-  </div>
+      <div class="w-1/2">
+        <label class="text-sm text-gray-300">상대방 언어 (Their Language)</label>
+        <select id="selectL2" class="w-full mt-2 p-2 rounded bg-[#0f1720] text-white">
+          <option value="vi-VN">베트남어 (Vietnamese)</option>
+          <option value="ko-KR">한국어 (Korean)</option>
+          <option value="en-US">영어 (English)</option>
+          <option value="zh-CN">중국어 (Chinese)</option>
+          <option value="ja-JP">일본어 (Japanese)</option>
+        </select>
+      </div>
+    </div>
 
-  <div class="card">
-    <button id="mic" class="btn" style="background:#06b6d4;color:black">음성 입력 (클릭: 시작, 다시 클릭: 정지)</button>
-    <div id="status" style="margin-top:8px;color:#9ca3af">준비됨</div>
+    <!-- L1 박스 (파랑 계열) -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-2">
+        <div class="text-sm text-blue-300 font-bold">🎙 <span id="labelL1">한국어 (Korean)</span> 화자</div>
+      </div>
+      <div class="speaker-box" style="background:#071028; border:1px solid rgba(59,130,246,0.12);">
+        <div id="L1Text" class="whitespace-pre-wrap text-white min-h-[80px]">번역된 상대방 언어 음성 출력이 여기에 표시됩니다.</div>
+        <button id="btnTTSL1" title="이 텍스트를 읽기" class="btn absolute right-3 bottom-3 bg-blue-600 text-white">🔊 음성</button>
+      </div>
+    </div>
+
+    <!-- L2 박스 (빨강 계열) -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-2">
+        <div class="text-sm text-red-300 font-bold">🎙 <span id="labelL2">베트남어 (Vietnamese)</span> 화자</div>
+      </div>
+      <div class="speaker-box" style="background:#120a0c; border:1px solid rgba(239,68,68,0.08);">
+        <div id="L2Text" class="whitespace-pre-wrap text-white min-h-[80px]">한국어 (Korean)로 번역된 음성 출력이 여기에 표시됩니다.</div>
+        <button id="btnTTSL2" title="이 텍스트를 읽기" class="btn absolute right-3 bottom-3 bg-red-600 text-white">🔊 음성</button>
+      </div>
+    </div>
+
+    <!-- 중앙 음성 입력 버튼 -->
+    <div class="flex justify-center">
+      <button id="micMain" class="mic-btn bg-teal-300 text-black font-bold">음성 입력</button>
+    </div>
+
+    <!-- 로그/상태 -->
+    <div class="card text-sm text-gray-300">
+      <div id="status">준비 완료. 녹음을 시작하려면 '음성 입력' 버튼을 누르세요.</div>
+      <div id="chatHistory" class="mt-2 max-h-36 overflow-auto text-xs text-gray-400"></div>
+    </div>
+    <div class="text-xs text-gray-500">⚠️ 주의: 브라우저에서 API Key를 직접 사용하는 방식은 개발/테스트용입니다. 운영 환경에서는 서버 프록시를 권장합니다.</div>
   </div>
 
 <script>
-const micBtn = document.getElementById('mic');
-const status = document.getElementById('status');
-const asrBox = document.getElementById('asr');
-const translationBox = document.getElementById('translation');
-const playAsr = document.getElementById('playAsr');
-const playTranslated = document.getElementById('playTranslated');
+/*
+  완성된 interpreter.html (옵션 A: Gemini + Google Speech-to-Text 사용 예시)
+  사용 전:
+    1) API_KEY 변수에 유효한 Google Cloud API Key 삽입 (Speech-to-Text + Generative API 사용 권한)
+    2) 배포용(운영)에서는 브라우저에 API Key를 직접 두지 말고, 서버 프록시(토큰 교환) 사용 권장
+*/
+
+const API_KEY = "AIzaSyD62j5LrOBDu0efSqvKvZ_bOaTu599FqRg"; // <<--- 여기에 키를 넣으세요 (개발/테스트용)
+const SPEECH_RECOGNIZE_URL = `https://speech.googleapis.com/v1/speech:recognize?key=${API_KEY}`;
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`; // 번역용 예시
+
+// UI elements
 const selectL1 = document.getElementById('selectL1');
 const selectL2 = document.getElementById('selectL2');
+const labelL1 = document.getElementById('labelL1');
+const labelL2 = document.getElementById('labelL2');
+const L1Text = document.getElementById('L1Text');
+const L2Text = document.getElementById('L2Text');
+const btnTTSL1 = document.getElementById('btnTTSL1');
+const btnTTSL2 = document.getElementById('btnTTSL2');
+const micMain = document.getElementById('micMain');
+const status = document.getElementById('status');
+const chatHistory = document.getElementById('chatHistory');
 
-let recorder = null;
-let chunks = [];
+let mediaRecorder = null;
+let recordedChunks = [];
 let isRecording = false;
 
-async function startRec(){
-  try{
-    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-    recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
-    chunks = [];
-    recorder.ondataavailable = e => { if(e.data && e.data.size) chunks.push(e.data); };
-    recorder.start();
-    isRecording = true;
-    status.textContent = '녹음 중... 다시 누르면 종료합니다.';
-    micBtn.style.boxShadow = '0 0 12px rgba(6,182,212,0.6)';
-  }catch(e){
-    alert('마이크 접근 실패: ' + e.message);
+// 언어 매핑 (간단한 표시용)
+const LANG_MAP = {
+  'ko-KR': '한국어 (Korean)',
+  'vi-VN': '베트남어 (Vietnamese)',
+  'en-US': '영어 (English)',
+  'zh-CN': '중국어 (Chinese)',
+  'ja-JP': '일본어 (Japanese)'
+};
+
+// 자동 감지 대상 언어 코드를 Speech-to-Text에 전달 (Google STT의 alternativeLanguageCodes 사용)
+const AUTO_LANGS = ['ko-KR','vi-VN','en-US','zh-CN','ja-JP'];
+
+// 초기 UI 업데이트
+function updateLabels() {
+  labelL1.textContent = LANG_MAP[selectL1.value] || selectL1.value;
+  labelL2.textContent = LANG_MAP[selectL2.value] || selectL2.value;
+}
+updateLabels();
+selectL1.addEventListener('change', updateLabels);
+selectL2.addEventListener('change', updateLabels);
+
+// ==================== MediaRecorder 녹음 제어 ====================
+async function startRecording() {
+  recordedChunks = [];
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('마이크를 사용할 수 없습니다. 최신 브라우저에서 실행하세요.');
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm; codecs=opus' });
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+    };
+
+    mediaRecorder.onstart = () => {
+      isRecording = true;
+      micMain.classList.add('listening');
+      micMain.textContent = '녹음 중... (다시 누르면 종료)';
+      status.textContent = '녹음 중... 말하세요.';
+    };
+
+    mediaRecorder.onstop = async () => {
+      isRecording = false;
+      micMain.classList.remove('listening');
+      micMain.textContent = '음성 입력';
+      status.textContent = '녹음 종료. 음성 인식 중...';
+
+      // Blob 생성
+      const blob = new Blob(recordedChunks, { type: recordedChunks[0]?.type || 'audio/webm' });
+      await processRecordedAudio(blob);
+    };
+
+    mediaRecorder.start();
+  } catch (err) {
+    console.error(err);
+    alert('마이크 접근이 허용되지 않았거나 오류가 발생했습니다.');
   }
 }
 
-async function stopRec(){
-  if(!recorder) return;
-  recorder.onstop = async () => {
-    const blob = new Blob(chunks, { type: chunks[0]?.type || 'audio/webm' });
-    status.textContent = '녹음 종료. 서버로 전송 중...';
-    await sendAudio(blob);
-    // stop tracks
-    recorder.stream.getTracks().forEach(t=>t.stop());
-    recorder = null;
-    isRecording = false;
-    micBtn.style.boxShadow='none';
-  };
-  recorder.stop();
+function stopRecording() {
+  if (mediaRecorder && isRecording) {
+    mediaRecorder.stop();
+    // 마이크 스트림 중지 (권한 해제)
+    if (mediaRecorder.stream) {
+      mediaRecorder.stream.getTracks().forEach(t => t.stop());
+    }
+  }
 }
 
-micBtn.addEventListener('click', ()=>{
-  if(!isRecording) startRec(); else stopRec();
+// 토글 버튼 동작
+micMain.addEventListener('click', () => {
+  if (!API_KEY || API_KEY.startsWith('REPLACE')) {
+    alert('API_KEY를 설정해주세요. (개발/테스트용 - 브라우저에 키를 노출하는 것은 보안상 위험합니다.)');
+    return;
+  }
+  if (!isRecording) {
+    startRecording();
+  } else {
+    stopRecording();
+  }
 });
 
-async function blobToBase64(blob){
-  return new Promise((res,rej)=>{
-    const r = new FileReader();
-    r.onloadend = ()=> res(r.result.split(',')[1]);
-    r.onerror = rej;
-    r.readAsDataURL(blob);
+// ==================== 오디오 -> STT -> 번역 -> TTS 흐름 ====================
+
+/*
+  processRecordedAudio(blob)
+    1) blob -> base64
+    2) Google Speech-to-Text REST 호출 (recognize)
+       - config: encoding, sampleRateHertz (optional), languageCode (primary) + alternativeLanguageCodes
+       - response: results[0].alternatives[0].transcript
+       - 일부 응답에서 'languageCode'를 반환하면 자동 언어 감지 결과로 사용
+    3) 번역: Gemini(또는 다른 번역 엔진)로 번역 요청 (source 자동감지 후 target은 selectL1/selectL2 관계에 따라 결정)
+    4) 결과 표시 및 TTS 재생
+*/
+
+async function blobToBase64(blob) {
+  return new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onloadend = () => res(reader.result.split(',')[1]); // base64 string (without prefix)
+    reader.onerror = rej;
+    reader.readAsDataURL(blob);
   });
 }
 
-async function sendAudio(blob){
-  try{
+function appendChat(role, lang, text) {
+  const t = document.createElement('div');
+  t.className = 'p-2 my-1';
+  t.innerHTML = `<strong>${role} [${lang}]:</strong> ${text}`;
+  chatHistory.appendChild(t);
+  chatHistory.scrollTop = chatHistory.scrollHeight;
+}
+
+// STT: Google Speech-to-Text REST (synchronous recognize).
+async function recognizeSpeechWithGoogle(base64Audio, mimeType) {
+  // NOTE: Google REST 'speech:recognize' expects "audio": {content: base64}, and "config" describing encoding/sampleRate...
+  // For best results, convert to LINEAR16 16kHz PCM on server side. Here we attempt with webm/opus and hope Google's auto-detection works.
+  const payload = {
+    config: {
+      encoding: "WEBM_OPUS",        // best-effort - many browsers produce webm/opus
+      sampleRateHertz: 48000,      // typical for browsers; Google may accept
+      // Optional: specify primary language and alternative languages for auto-detection
+      languageCode: "en-US",       // primary (used if ambiguous) - but we also provide alternatives
+      alternativeLanguageCodes: AUTO_LANGS // allow auto detection among these
+    },
+    audio: {
+      content: base64Audio
+    }
+  };
+
+  const resp = await fetch(SPEECH_RECOGNIZE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!resp.ok) {
+    const body = await resp.text();
+    throw new Error(`Speech-to-Text HTTP ${resp.status}: ${body}`);
+  }
+  const json = await resp.json();
+  return json;
+}
+
+// 번역(및 언어 감지) - Gemini 사용 예시
+async function translateWithGemini(text, fromLabel, targetLangCode) {
+  // system prompt: 전문 동시통역사 역할
+  const systemPrompt = `You are a professional translator. Detect the input language and translate it naturally into ${LANG_MAP[targetLangCode] || targetLangCode}. Only return the translated text, nothing else.`;
+  const payload = {
+    contents: [
+      { role: "user", parts: [{ text: systemPrompt }] },
+      { role: "user", parts: [{ text: `Translate this text into ${LANG_MAP[targetLangCode] || targetLangCode}: "${text}"` }] }
+    ],
+    config: { temperature: 0.1, topK: 1, topP: 0.9 }
+  };
+
+  const resp = await fetch(GEMINI_API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!resp.ok) {
+    const b = await resp.text();
+    throw new Error(`Gemini HTTP ${resp.status}: ${b}`);
+  }
+  const rjson = await resp.json();
+  const translation = rjson?.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  // Note: Gemini might not return explicit detected language — STT response may contain language.
+  return translation || '';
+}
+
+// 언어 코드에서 읽기용 언어(음성합성 lang) 결정
+function ttsLangFor(code) {
+  // For browser speechSynthesis, use short code like 'ko-KR', 'vi-VN', etc.
+  return code;
+}
+
+// 실제 처리
+async function processRecordedAudio(blob) {
+  try {
+    status.textContent = '오디오 인코딩 중...';
     const base64 = await blobToBase64(blob);
-    const payload = { audioBase64: base64, mimeType: blob.type, selectL1: selectL1.value, selectL2: selectL2.value };
-    const resp = await fetch('/api/process-audio', {
-      method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload)
-    });
-    if(!resp.ok){
-      const txt = await resp.text();
-      status.textContent = '서버 오류: ' + resp.status;
-      console.error(txt);
+    status.textContent = '음성 인식 요청 중... (Google Speech-to-Text)';
+    const sttResp = await recognizeSpeechWithGoogle(base64, blob.type);
+
+    // sttResp 구조 예: { results: [{ alternatives: [{ transcript: "...", confidence: 0.9 }], languageCode: "vi-VN" }], ... }
+    let transcript = '';
+    let detectedLang = null;
+
+    if (sttResp.results && sttResp.results.length) {
+      // concatenate results
+      transcript = sttResp.results.map(r => (r.alternatives && r.alternatives[0] && r.alternatives[0].transcript) ? r.alternatives[0].transcript : '').join(' ').trim();
+      // Google may provide languageCode on top-level result or on recognitionConfig
+      detectedLang = (sttResp.results[0] && sttResp.results[0].languageCode) || sttResp.languageCode || null;
+    }
+
+    if (!transcript) {
+      status.textContent = '음성 인식 실패: 텍스트를 찾을 수 없습니다.';
+      appendChat('System','', '음성 인식 실패 또는 인식된 텍스트 없음.');
       return;
     }
-    const j = await resp.json();
-    // j: { transcript, detectedLang, translation, targetLang }
-    asrBox.textContent = `[${j.detectedLang||'und'}] ` + (j.transcript||'');
-    translationBox.textContent = `[${j.targetLang||''}] ` + (j.translation||'');
-    status.textContent = '완료: 자동 감지 및 번역 완료.';
-    // 자동 음성 출력
-    if(j.translation && j.targetLang) speak(j.translation, j.targetLang);
-  }catch(e){
-    console.error(e);
-    status.textContent = '전송 오류: ' + e.message;
+
+    appendChat('User (ASR)', detectedLang || 'und', transcript);
+    status.textContent = `감지된 언어: ${detectedLang || '자동 감지 불가'}. 번역 중...`;
+
+    // 번역: 만약 detectedLang === selectL1, 번역 대상은 L2, 반대면 L1
+    const selL1 = selectL1.value;
+    const selL2 = selectL2.value;
+
+    // Determine translation direction:
+    // If detectedLang is one of our L1/L2 codes, use the other as target. Otherwise use selected L2 as default target.
+    let targetLangCode = selL2;
+    if (detectedLang) {
+      const d = detectedLang.split('-')[0]; // e.g., "vi" from "vi-VN"
+      const s1 = selL1.split('-')[0], s2 = selL2.split('-')[0];
+      if (d === s1) targetLangCode = selL2;
+      else if (d === s2) targetLangCode = selL1;
+      else targetLangCode = selL2; // default: translate to 상대방 언어
+    }
+
+    // Call Gemini to translate (Gemini does detection+translation prompt)
+    const translated = await translateWithGemini(transcript, detectedLang || 'unknown', targetLangCode);
+
+    // Update UI: write source and translation into appropriate boxes
+    // If detectedLang corresponds to L1, then put original in L1 box and translated in L2 box.
+    // Otherwise assume original belongs to detectedLang side.
+    const detectedShort = detectedLang ? detectedLang.split('-')[0] : 'und';
+    const s1Short = selL1.split('-')[0], s2Short = selL2.split('-')[0];
+
+    if (detectedShort === s1Short) {
+      // user spoke in L1 -> show ASR in L1Text, translation in L2Text
+      L1Text.textContent = transcript;
+      L2Text.textContent = translated || '(번역 결과 없음)';
+      appendChat('Translator', `${LANG_MAP[targetLangCode]||targetLangCode}`, translated || '(번역 없음)');
+      // 자동 음성 출력: 번역 -> 대상 언어
+      speakOut(translated || '', targetLangCode);
+    } else if (detectedShort === s2Short) {
+      L2Text.textContent = transcript;
+      L1Text.textContent = translated || '(번역 결과 없음)';
+      appendChat('Translator', `${LANG_MAP[targetLangCode]||targetLangCode}`, translated || '(번역 없음)');
+      speakOut(translated || '', targetLangCode);
+    } else {
+      // 감지 언어가 L1/L2 중 하나가 아닌 경우 (예: 영어) -> translate to selected opposite (we used targetLangCode)
+      // Put original in a best-fit box: if detected matches neither, we will show original in L1Text and translation in L2Text
+      L1Text.textContent = transcript;
+      L2Text.textContent = translated || '(번역 결과 없음)';
+      appendChat('Translator', `${LANG_MAP[targetLangCode]||targetLangCode}`, translated || '(번역 없음)');
+      speakOut(translated || '', targetLangCode);
+    }
+
+    status.textContent = `완료: 인식(${detectedLang||'und'}) • 번역 후 음성 출력 완료`;
+  } catch (err) {
+    console.error('처리 오류', err);
+    status.textContent = `오류: ${err.message || err}`;
+    appendChat('Error','', err.message || String(err));
   }
 }
 
-function speak(text, lang){
-  try{
+// ==================== TTS (브라우저) ====================
+function speakOut(text, langCode) {
+  if (!text) return;
+  try {
     window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = lang;
+    const ut = new SpeechSynthesisUtterance(text);
+    ut.lang = ttsLangFor(langCode);
+    // 음성 선택(가능하면 같은 언어 음성 사용)
     const voices = window.speechSynthesis.getVoices();
-    const v = voices.find(vv=>vv.lang && vv.lang.startsWith(lang.substring(0,2)));
-    if(v) u.voice = v;
-    u.onend = ()=> status.textContent = '음성 출력 완료.';
-    status.textContent = '음성 출력 중...';
-    window.speechSynthesis.speak(u);
-  }catch(e){
-    console.error(e);
+    const match = voices.find(v => v.lang && v.lang.startsWith((langCode || '').substring(0,2)));
+    if (match) ut.voice = match;
+    ut.onstart = () => { status.textContent = '음성 출력 중...'; };
+    ut.onend = () => { status.textContent = '음성 출력 완료.'; };
+    window.speechSynthesis.speak(ut);
+  } catch (e) {
+    console.error('TTS 오류', e);
   }
 }
 
-playAsr.addEventListener('click', ()=>{
-  const t = asrBox.textContent.trim();
-  if(t) speak(t, selectL1.value);
+// ============ 각 박스의 재생 버튼 =============
+btnTTSL1.addEventListener('click', () => {
+  const t = L1Text.textContent.trim();
+  if (!t) { alert('재생할 텍스트가 없습니다.'); return; }
+  speakOut(t, selectL1.value);
 });
-playTranslated.addEventListener('click', ()=>{
-  const t = translationBox.textContent.trim();
-  if(t) speak(t, selectL2.value);
+btnTTSL2.addEventListener('click', () => {
+  const t = L2Text.textContent.trim();
+  if (!t) { alert('재생할 텍스트가 없습니다.'); return; }
+  speakOut(t, selectL2.value);
 });
 
 </script>

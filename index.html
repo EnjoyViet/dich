@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI Interpreter (Vercel-ready)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto; background:#0b0b0b; color:#e6eef8; padding:20px;}
+    .card{background:#111214;border-radius:12px;padding:14px;margin-bottom:12px;}
+    .btn{padding:10px 14px;border-radius:8px;cursor:pointer;border:none}
+  </style>
+</head>
+<body>
+  <h2>AI Interpreter (Vercel secured proxy)</h2>
+  <div class="card">
+    <label>나의 언어 (L1)</label>
+    <select id="selectL1">
+      <option value="ko-KR">한국어 (ko-KR)</option>
+      <option value="vi-VN">베트남어 (vi-VN)</option>
+      <option value="en-US">영어 (en-US)</option>
+      <option value="zh-CN">중국어 (zh-CN)</option>
+      <option value="ja-JP">일본어 (ja-JP)</option>
+    </select>
+    <br/><br/>
+    <label>상대방 언어 (L2)</label>
+    <select id="selectL2">
+      <option value="vi-VN">베트남어 (vi-VN)</option>
+      <option value="ko-KR">한국어 (ko-KR)</option>
+      <option value="en-US">영어 (en-US)</option>
+      <option value="zh-CN">중국어 (zh-CN)</option>
+      <option value="ja-JP">일본어 (ja-JP)</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <div><strong>원문 (ASR)</strong></div>
+    <pre id="asr" style="min-height:60px;background:#071028;padding:10px;border-radius:6px;"></pre>
+    <button id="playAsr" class="btn" style="background:#2b6cb0;color:white">🔊 ASR 재생</button>
+  </div>
+
+  <div class="card">
+    <div><strong>번역</strong></div>
+    <pre id="translation" style="min-height:60px;background:#120a0c;padding:10px;border-radius:6px;"></pre>
+    <button id="playTranslated" class="btn" style="background:#c53030;color:white">🔊 번역 재생</button>
+  </div>
+
+  <div class="card">
+    <button id="mic" class="btn" style="background:#06b6d4;color:black">음성 입력 (클릭: 시작, 다시 클릭: 정지)</button>
+    <div id="status" style="margin-top:8px;color:#9ca3af">준비됨</div>
+  </div>
+
+<script>
+const micBtn = document.getElementById('mic');
+const status = document.getElementById('status');
+const asrBox = document.getElementById('asr');
+const translationBox = document.getElementById('translation');
+const playAsr = document.getElementById('playAsr');
+const playTranslated = document.getElementById('playTranslated');
+const selectL1 = document.getElementById('selectL1');
+const selectL2 = document.getElementById('selectL2');
+
+let recorder = null;
+let chunks = [];
+let isRecording = false;
+
+async function startRec(){
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+    chunks = [];
+    recorder.ondataavailable = e => { if(e.data && e.data.size) chunks.push(e.data); };
+    recorder.start();
+    isRecording = true;
+    status.textContent = '녹음 중... 다시 누르면 종료합니다.';
+    micBtn.style.boxShadow = '0 0 12px rgba(6,182,212,0.6)';
+  }catch(e){
+    alert('마이크 접근 실패: ' + e.message);
+  }
+}
+
+async function stopRec(){
+  if(!recorder) return;
+  recorder.onstop = async () => {
+    const blob = new Blob(chunks, { type: chunks[0]?.type || 'audio/webm' });
+    status.textContent = '녹음 종료. 서버로 전송 중...';
+    await sendAudio(blob);
+    // stop tracks
+    recorder.stream.getTracks().forEach(t=>t.stop());
+    recorder = null;
+    isRecording = false;
+    micBtn.style.boxShadow='none';
+  };
+  recorder.stop();
+}
+
+micBtn.addEventListener('click', ()=>{
+  if(!isRecording) startRec(); else stopRec();
+});
+
+async function blobToBase64(blob){
+  return new Promise((res,rej)=>{
+    const r = new FileReader();
+    r.onloadend = ()=> res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(blob);
+  });
+}
+
+async function sendAudio(blob){
+  try{
+    const base64 = await blobToBase64(blob);
+    const payload = { audioBase64: base64, mimeType: blob.type, selectL1: selectL1.value, selectL2: selectL2.value };
+    const resp = await fetch('/api/process-audio', {
+      method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload)
+    });
+    if(!resp.ok){
+      const txt = await resp.text();
+      status.textContent = '서버 오류: ' + resp.status;
+      console.error(txt);
+      return;
+    }
+    const j = await resp.json();
+    // j: { transcript, detectedLang, translation, targetLang }
+    asrBox.textContent = `[${j.detectedLang||'und'}] ` + (j.transcript||'');
+    translationBox.textContent = `[${j.targetLang||''}] ` + (j.translation||'');
+    status.textContent = '완료: 자동 감지 및 번역 완료.';
+    // 자동 음성 출력
+    if(j.translation && j.targetLang) speak(j.translation, j.targetLang);
+  }catch(e){
+    console.error(e);
+    status.textContent = '전송 오류: ' + e.message;
+  }
+}
+
+function speak(text, lang){
+  try{
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = lang;
+    const voices = window.speechSynthesis.getVoices();
+    const v = voices.find(vv=>vv.lang && vv.lang.startsWith(lang.substring(0,2)));
+    if(v) u.voice = v;
+    u.onend = ()=> status.textContent = '음성 출력 완료.';
+    status.textContent = '음성 출력 중...';
+    window.speechSynthesis.speak(u);
+  }catch(e){
+    console.error(e);
+  }
+}
+
+playAsr.addEventListener('click', ()=>{
+  const t = asrBox.textContent.trim();
+  if(t) speak(t, selectL1.value);
+});
+playTranslated.addEventListener('click', ()=>{
+  const t = translationBox.textContent.trim();
+  if(t) speak(t, selectL2.value);
+});
+
+</script>
+</body>
+</html>

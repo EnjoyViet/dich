@@ -3,80 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>반응형 웹 테스트 페이지</title>
-    <style>
-        /* 기본 스타일 */
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
-            color: #333;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #fff;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
-
-        h1 {
-            color: #007bff;
-            margin-bottom: 20px;
-        }
-
-        .responsive-box {
-            width: 90%; /* 기본적으로 넓게 */
-            padding: 15px;
-            margin: 10px auto;
-            background-color: #28a745;
-            color: white;
-            border-radius: 5px;
-            font-size: 1.2em;
-        }
-
-        /* 미디어 쿼리 (Media Queries) */
-
-        /* 태블릿 크기 (768px 이상) */
-        @media (min-width: 768px) {
-            .container {
-                padding: 30px;
-            }
-            .responsive-box {
-                width: 70%; /* 태블릿에서는 중간 크기 */
-                background-color: #ffc107; /* 색상 변경 */
-            }
-        }
-
-        /* 데스크톱 크기 (1200px 이상) */
-        @media (min-width: 1200px) {
-            .responsive-box {
-                width: 50%; /* 데스크톱에서는 좁은 크기 */
-                background-color: #dc3545; /* 색상 변경 */
-            }
-        }
-    </style>
-</head>
+    <title>Pattern_Son 클론 - 반응형 테스트</title>
+    <link rel="stylesheet" href="styles.css"> </head>
 <body>
 
-    <div class="container">
-        <h1>반응형 웹 테스트</h1>
-        <p>브라우저 크기를 조절하여 아래 박스의 변화를 확인하세요.</p>
-        
-        <div class="responsive-box">
-            현재 너비에 따라 배경색과 크기가 변합니다.
-            <br><br>
-            **기본 (320px ~ 767px):** 녹색 (90%)
-            <br>
-            **태블릿 (768px ~ 1199px):** 노란색 (70%)
-            <br>
-            **데스크톱 (1200px 이상):** 빨간색 (50%)
+    <header class="main-header">
+        <div class="logo">Pattern_Son</div>
+        <nav class="desktop-nav">
+            <a href="#">Home</a>
+            <a href="#">All designs</a>
+            <a href="#">Abstract</a>
+            <a href="#">Floral</a>
+        </nav>
+        <div class="icons">
+            <span class="search-icon">🔍</span>
+            <span class="cart-icon">🛒 (0)</span>
+            <button class="mobile-menu-button">☰</button>
         </div>
+    </header>
 
-        <p>이 코드는 기본적인 반응형 디자인 테스트를 위해 **viewport meta tag**와 **CSS Media Queries**를 활용합니다.</p>
+    <div class="main-container">
+        
+        <aside class="sidebar">
+            <h2>Categories</h2>
+            <ul>
+                <li><a href="#">Abstract</a></li>
+                <li><a href="#">Floral</a></li>
+                <li><a href="#">Geometric</a></li>
+                <li><a href="#">Animals</a></li>
+                <li><a href="#">Check</a></li>
+                <li><a href="#">Dots</a></li>
+                <li><a href="#">Stripes</a></li>
+            </ul>
+        </aside>
+
+        <main class="product-list">
+            
+            <div class="product-card">
+                <div class="product-image">PRODUCT IMAGE</div>
+                <h3>Dusky Rose Tropical Leaves</h3>
+                <p class="price">Free</p>
+                <button class="buy-button">Download</button>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">PRODUCT IMAGE</div>
+                <h3>Overlapping Tropical Foliage</h3>
+                <p class="price">$19.99</p>
+                <button class="buy-button">Buy Now</button>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">PRODUCT IMAGE</div>
+                <h3>Monochromatic Teal Bloom</h3>
+                <p class="price">$29.99</p>
+                <button class="buy-button">Buy Now</button>
+            </div>
+
+            <div class="product-card">
+                <div class="product-image">PRODUCT IMAGE</div>
+                <h3>Vivid Violet Watercolor Floral</h3>
+                <p class="price">$14.99</p>
+                <button class="buy-button">Buy Now</button>
+            </div>
+            
+            <div class="product-card">
+                <div class="product-image">PRODUCT IMAGE</div>
+                <h3>Vintage Olive Floral</h3>
+                <p class="price">$9.99</p>
+                <button class="buy-button">Buy Now</button>
+            </div>
+            
+        </main>
     </div>
 
 </body>
